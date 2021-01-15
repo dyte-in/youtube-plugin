@@ -5,6 +5,7 @@ import { DytePlugin, Events } from 'dyte-plugin-sdk';
 import {
     Navbar,
     FormControl,
+    Container,
     Row,
     Col,
     NavItem,
@@ -23,7 +24,7 @@ const YOUTUBE_URL_REGEX = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?
 // const autoplay: 0 | 1 | undefined = 1;
 
 const videoOptions = {
-    height: '600',
+    height: '99%',
     width: '100%',
     // playerVars: {
     //     autoplay,
@@ -162,7 +163,7 @@ export default function MainView() {
     };
 
     return (
-        <div className="d-flex flex-column mainViewContainer">
+        <Container fluid className="d-flex flex-column mainViewContainer">
             <Navbar className="top-nav">
                 <Navbar.Brand>
                     <img src={logo} width={30} alt="logo" />
@@ -173,33 +174,34 @@ export default function MainView() {
                     </Col>
                     <Col md="auto" className="pl-2 pr-1 d-flex justify-content-center align-items-center">
                         <NavItem className="nav-icon" onClick={reload}>
-                            {/* <box-icon name="refresh" color="#495057" /> */}
+                            <box-icon name="refresh" color="#495057" />
                         </NavItem>
                     </Col>
                 </Row>
             </Navbar>
-            <br />
-            {
-                videoId
-                && (
-                    <YouTube
-                        videoId={videoId}
-                        id="dyte-youtube-plugin"
-                        opts={videoOptions}
-                        onReady={onReady}
-                        onPlay={onPlay}
-                        onPause={onPause}
-                    />
-                )
-            }
-            {
-                !share
-                && (
-                    <div className="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
-                        <div className="prompt mt-4">Enter a YouTube link in the URL bar above.</div>
-                    </div>
-                )
-            }
-        </div>
+            <Row className="flex-grow-1 mt-3 videoContainer">
+                {
+                    videoId
+                    && (
+                        <YouTube
+                            videoId={videoId}
+                            id="dyte-youtube-plugin"
+                            opts={videoOptions}
+                            onReady={onReady}
+                            onPlay={onPlay}
+                            onPause={onPause}
+                        />
+                    )
+                }
+                {
+                    !share
+                    && (
+                        <div className="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
+                            <div className="prompt mt-4">Enter a YouTube link in the URL bar above.</div>
+                        </div>
+                    )
+                }
+            </Row>
+        </Container>
     );
 }

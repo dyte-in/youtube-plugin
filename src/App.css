@@ -54,6 +54,11 @@ html, body {
 .mainViewContainer {
   width: 100vw;
   height: 100vh;
+  background-color: #181818;
+}
+
+.videoContainer > * {
+  width: 100vw;
 }
 
 .form-control:focus {
