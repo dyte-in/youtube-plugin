@@ -2,89 +2,40 @@ import React, {
     useCallback, useEffect, useRef, useState,
 } from 'react';
 import { DytePlugin, Events } from 'dyte-plugin-sdk';
-import 'boxicons';
-import { Navbar, FormControl, Button } from 'react-bootstrap';
+import {
+    Navbar,
+    FormControl,
+    Row,
+    Col,
+    NavItem,
+} from 'react-bootstrap';
+
+import YouTube from 'react-youtube';
 
 import logo from './logo.svg';
 
 declare global {
-    interface Window { gapi: any; google: any; }
+    interface Window { }
 }
 
-const CLIENT_ID = '1068687898273-ce7kds60hs2knovmh515atbv31u88mj0.apps.googleusercontent.com';
-const SCOPE = ['https://www.googleapis.com/auth/drive.file'];
+const YOUTUBE_URL_REGEX = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
 
-const DEVELOPER_KEY = 'AIzaSyD-Z6EJb4qWnMEd2Q5XIQej2Xi-yKpqqfA';
-const APP_ID = '1068687898273';
-
-const FILE_MIMETYPES = 'application/vnd.google-apps.document,application/vnd.google-apps.spreadsheet,application/vnd.google-apps.presentation';
-
-function createPicker(token: string, origin: string, cb: (data: any) => any) {
-    const { google } = window;
-    const view = new google.picker.View(google.picker.ViewId.DOCS);
-    view.setMimeTypes(FILE_MIMETYPES);
-    const picker = new google.picker.PickerBuilder()
-        .setAppId(APP_ID)
-        .setOrigin(origin)
-        .setOAuthToken(token)
-        .enableFeature(google.picker.Feature.NAV_HIDDEN)
-        .addView(view)
-        .setDeveloperKey(DEVELOPER_KEY)
-        .setCallback((data: any) => cb(data))
-        .build();
-    picker.setVisible(true);
-}
-
-const oauthPopup = (cb: (data: any) => any) => {
-    window.gapi.auth.authorize(
-        {
-            client_id: CLIENT_ID,
-            scope: SCOPE,
-            immediate: false,
-        },
-        (result: any) => {
-            console.log(result);
-            cb(result.access_token);
-        },
-    );
+const videoOptions = {
+    height: '600',
+    width: '100%',
 };
 
-function identifyDocType(share: string): string {
-    const url = new URL(share);
-    if (url.pathname.startsWith('/spreadsheet')) {
-        return 'sheets';
-    } if (url.pathname.startsWith('/presentation')) {
-        return 'slides';
-    }
-    return 'docs';
-}
-
-function validateDocsUrl(share: string): boolean {
-    let url;
-    try {
-        url = new URL(share);
-    } catch (_) {
-        return false;
-    }
-    return url.host === 'docs.google.com'
-        && (url.pathname.startsWith('/document')
-            || url.pathname.startsWith('/presentation')
-            || url.pathname.startsWith('/spreadsheet'));
+function validateYouTubeURL(share: string): string | null {
+    const match = share.match(YOUTUBE_URL_REGEX);
+    return (match && match[7].length === 11) ? match[7] : null;
 }
 
 export default function MainView() {
-    const [token, setToken] = useState('');
+    const [videoId, setVideoId] = useState('');
     const [share, setShare] = useState<string>('');
     const [inputBar, setInputBar] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
     const frame = useRef<HTMLIFrameElement>(null);
-
-    const setDocumentView = (url: string) => {
-        if (url && validateDocsUrl(url)) {
-            setShare(url);
-            setInputBar(url);
-        }
-    };
 
     const initPlugin = useCallback(async () => {
         const dytePlugin = new DytePlugin();
@@ -100,51 +51,39 @@ export default function MainView() {
         initPlugin();
     }, [initPlugin]);
 
+    const setDocumentView = (url: string) => {
+        if (url && validateYouTubeURL(url)) {
+            setShare(url);
+            setInputBar(url);
+        }
+    };
+
     useEffect(() => {
         if (plugin) {
             plugin.getData().then((data: { shareUrl: string }) => setDocumentView(data?.shareUrl));
         }
-    },
-    [plugin]);
+    }, [plugin]);
 
-    const onPickerClick = (accessToken: string) => {
-        if (!accessToken) {
-            return oauthPopup((token) => {
-                if (token) {
-                    setToken(token);
-                    onPickerClick(token);
-                }
-            });
+    const shareVideo = (url: string) => {
+        const vid = validateYouTubeURL(url);
+        if (vid) {
+            console.log(vid);
+            setVideoId(vid);
+            plugin?.storeData({ shareUrl: url });
+        } else {
+            alert('Not a valid YouTube URL!');
         }
-        createPicker(accessToken, plugin?.parentOrigin || 'https://app.dyte.in', (data) => {
-            if (data.action === 'picked') {
-                shareDoc(data.docs[0].url);
-            }
-        });
     };
-
-    let docType = 'docs';
-    if (share) {
-        docType = identifyDocType(share);
-    }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && inputBar !== share) {
-            shareDoc(inputBar);
-        }
-    };
-
-    const shareDoc = (url: string) => {
-        if (validateDocsUrl(url)) {
-            plugin?.storeData({ shareUrl: url });
-        } else {
-            alert('Not a valid docs URL!');
+            shareVideo(inputBar);
         }
     };
 
     const reload = () => {
         if (inputBar !== share) {
-            shareDoc(inputBar);
+            shareVideo(inputBar);
         } else if (frame.current) {
             const { current } = frame;
             frame.current.src = current.src;
@@ -157,30 +96,33 @@ export default function MainView() {
                 <Navbar.Brand>
                     <img src={logo} width={30} alt="logo" />
                 </Navbar.Brand>
-                <div className="row no-gutters flex-grow-1">
-                    <div className="col">
-                        <FormControl type="text" className={`input-${docType}`} placeholder="Search" value={inputBar} onChange={(e) => setInputBar(e.target.value)} onKeyDown={handleKeyDown} size="sm" />
-                    </div>
-                    <div className="col-auto pl-2 pr-1 d-flex justify-content-center align-items-center">
-                        <div className="nav-icon" role="button" onClick={reload}>
-                            <box-icon name="refresh" color="#495057" />
-                        </div>
-                        <div className="nav-icon ml-1" role="button" onClick={() => { onPickerClick(token); }}>
-                            <box-icon name="file-find" color="#495057" />
-                        </div>
-                    </div>
-                </div>
+                <Row className="no-gutters flex-grow-1">
+                    <Col>
+                        <FormControl type="text" className="input-docs" placeholder="Enter YouTube URL" value={inputBar} onChange={(e) => setInputBar(e.target.value)} onKeyDown={handleKeyDown} size="sm" />
+                    </Col>
+                    <Col md="auto" className="pl-2 pr-1 d-flex justify-content-center align-items-center">
+                        <NavItem className="nav-icon" onClick={reload}>
+                            {/* <box-icon name="refresh" color="#495057" /> */}
+                        </NavItem>
+                    </Col>
+                </Row>
             </Navbar>
             <br />
             {
-                share && <iframe ref={frame} src={share} className="shareIframe flex-grow-1" frameBorder={0} title="share" />
+                share
+                && (
+                    <YouTube
+                        videoId={videoId}
+                        id="dyte-youtube-plugin"
+                        opts={videoOptions}
+                    />
+                )
             }
             {
                 !share
                 && (
                     <div className="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
-                        <div className="prompt mt-4">Enter a docs/slides/spreadsheet link in the bar above, or pick a file from your google drive</div>
-                        <Button className="mt-4" onClick={() => { onPickerClick(token); }} variant="primary" size="lg">Pick File</Button>
+                        <div className="prompt mt-4">Enter a YouTube link in the URL bar above.</div>
                     </div>
                 )
             }
