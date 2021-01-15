@@ -55,6 +55,10 @@ export default function MainView() {
         if (url && validateYouTubeURL(url)) {
             setShare(url);
             setInputBar(url);
+            const vid = validateYouTubeURL(url);
+            if (vid) {
+                setVideoId(vid);
+            }
         }
     };
 
@@ -67,7 +71,6 @@ export default function MainView() {
     const shareVideo = (url: string) => {
         const vid = validateYouTubeURL(url);
         if (vid) {
-            console.log(vid);
             setVideoId(vid);
             plugin?.storeData({ shareUrl: url });
         } else {
@@ -109,7 +112,7 @@ export default function MainView() {
             </Navbar>
             <br />
             {
-                share
+                videoId
                 && (
                     <YouTube
                         videoId={videoId}
