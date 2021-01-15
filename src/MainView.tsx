@@ -1,5 +1,5 @@
 import React, {
-    useCallback, useEffect, useRef, useState,
+    useCallback, useEffect, useState,
 } from 'react';
 import { DytePlugin, Events } from 'dyte-plugin-sdk';
 import {
@@ -30,12 +30,26 @@ function validateYouTubeURL(share: string): string | null {
     return (match && match[7].length === 11) ? match[7] : null;
 }
 
+interface YouTubeEvent {
+    target: any;
+    data?: number;
+}
+
+interface YouTubeEventData {
+    data: {
+        action: 'play' | 'pause';
+    };
+    id: string;
+    uuid: string;
+    scope: string;
+}
+
 export default function MainView() {
-    const [videoId, setVideoId] = useState('');
+    const [videoId, setVideoId] = useState<string>('');
     const [share, setShare] = useState<string>('');
     const [inputBar, setInputBar] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
-    const frame = useRef<HTMLIFrameElement>(null);
+    const [currentElement, setCurrentElement] = useState<YouTubeEvent>({ target: null });
 
     const initPlugin = useCallback(async () => {
         const dytePlugin = new DytePlugin();
@@ -50,6 +64,33 @@ export default function MainView() {
     useEffect(() => {
         initPlugin();
     }, [initPlugin]);
+
+    const eventListener = useCallback((ce: YouTubeEvent) => {
+        console.log('ran');
+        plugin?.connection.on(Events.pluginEvent, (payload: YouTubeEventData) => {
+            if (!ce.target) {
+                console.log('currentElement is not defined!');
+                return;
+            }
+
+            switch (payload.data.action) {
+            case 'play':
+                console.log('play!');
+                ce.target.playVideo();
+                break;
+            case 'pause':
+                console.log('pause!');
+                ce.target.pauseVideo();
+                break;
+            default:
+                console.log(payload.data);
+            }
+        });
+    }, [plugin]);
+
+    useEffect(() => {
+        eventListener(currentElement);
+    }, [eventListener, currentElement]);
 
     const setDocumentView = (url: string) => {
         if (url && validateYouTubeURL(url)) {
@@ -85,12 +126,34 @@ export default function MainView() {
     };
 
     const reload = () => {
-        if (inputBar !== share) {
-            shareVideo(inputBar);
-        } else if (frame.current) {
-            const { current } = frame;
-            frame.current.src = current.src;
-        }
+        console.log(currentElement);
+        // if (inputBar !== share) {
+        //     shareVideo(inputBar);
+        // }
+    };
+
+    const onReady = (event: YouTubeEvent) => {
+        console.log('Ready!');
+        console.log(event);
+        setCurrentElement(event);
+        console.log(currentElement);
+    };
+
+    const onPlay = (event: YouTubeEvent) => {
+        if (!currentElement) setCurrentElement(event);
+
+        plugin?.triggerEvent({
+            action: 'play',
+        });
+    };
+
+    const onPause = (event: YouTubeEvent) => {
+        console.log(currentElement);
+        if (!currentElement) setCurrentElement(event);
+
+        plugin?.triggerEvent({
+            action: 'pause',
+        });
     };
 
     return (
@@ -118,6 +181,9 @@ export default function MainView() {
                         videoId={videoId}
                         id="dyte-youtube-plugin"
                         opts={videoOptions}
+                        onReady={onReady}
+                        onPlay={onPlay}
+                        onPause={onPause}
                     />
                 )
             }
