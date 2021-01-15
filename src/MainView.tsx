@@ -13,7 +13,8 @@ import {
 
 import YouTube from 'react-youtube';
 
-import logo from './logo.svg';
+import logo from './youtube_icon.png';
+import reloadIcon from './reload.png';
 
 declare global {
     interface Window { }
@@ -128,10 +129,9 @@ export default function MainView() {
     };
 
     const reload = () => {
-        console.log(videoElement.current);
-        // if (inputBar !== share) {
-        //     shareVideo(inputBar);
-        // }
+        if (inputBar !== share) {
+            shareVideo(inputBar);
+        }
     };
 
     const onReady = (event: YouTubeEvent) => {
@@ -163,10 +163,10 @@ export default function MainView() {
     };
 
     return (
-        <Container fluid className="d-flex flex-column mainViewContainer">
+        <Container fluid className="d-flex flex-column mainViewContainer no-overflow">
             <Navbar className="top-nav">
-                <Navbar.Brand>
-                    <img src={logo} width={30} alt="logo" />
+                <Navbar.Brand href="https://youtube.com" target="_blank">
+                    <img src={logo} width="30px" alt="logo" />
                 </Navbar.Brand>
                 <Row className="no-gutters flex-grow-1">
                     <Col>
@@ -174,7 +174,7 @@ export default function MainView() {
                     </Col>
                     <Col md="auto" className="pl-2 pr-1 d-flex justify-content-center align-items-center">
                         <NavItem className="nav-icon" onClick={reload}>
-                            <box-icon name="refresh" color="#495057" />
+                            <img src={reloadIcon} width="26px" alt="refresh" />
                         </NavItem>
                     </Col>
                 </Row>
