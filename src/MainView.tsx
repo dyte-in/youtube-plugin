@@ -1,5 +1,5 @@
 import React, {
-    useRef, useEffect, useState,
+    useRef, useEffect, useState, useCallback,
 } from 'react';
 import { DytePlugin, Events } from 'dyte-plugin-sdk';
 import {
@@ -20,9 +20,14 @@ declare global {
 
 const YOUTUBE_URL_REGEX = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
 
+// const autoplay: 0 | 1 | undefined = 1;
+
 const videoOptions = {
     height: '600',
     width: '100%',
+    // playerVars: {
+    //     autoplay,
+    // },
 };
 
 function validateYouTubeURL(share: string): string | null {
@@ -49,9 +54,10 @@ export default function MainView() {
     const [share, setShare] = useState<string>('');
     const [inputBar, setInputBar] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
-    const videoElement = useRef<YouTubeEvent>({ target: null });
+    const isPlaying = useRef<boolean>(false);
+    const videoElement = useRef<any>({ target: null });
 
-    const initPlugin = async () => {
+    const initPlugin = useCallback(async () => {
         const dytePlugin = new DytePlugin();
         await dytePlugin.init();
         dytePlugin.connection.on(Events.pluginData, (payload) => {
@@ -59,19 +65,21 @@ export default function MainView() {
         });
 
         dytePlugin.connection.on(Events.pluginEvent, (payload: YouTubeEventData) => {
-            if (!videoElement.current.target) {
-                console.log('videoElement.current.target is not defined!');
+            if (!videoElement.current) {
+                console.log('videoElement.current is not defined!');
                 return;
             }
 
             switch (payload.data.action) {
             case 'play':
+                if (isPlaying.current) break;
                 console.log('play!');
-                videoElement.current.target.playVideo();
+                videoElement.current.playVideo();
                 break;
             case 'pause':
+                if (!isPlaying.current) break;
                 console.log('pause!');
-                videoElement.current.target.pauseVideo();
+                videoElement.current.pauseVideo();
                 break;
             default:
                 console.log(payload.data);
@@ -79,11 +87,11 @@ export default function MainView() {
         });
 
         setPlugin(dytePlugin);
-    };
+    }, []);
 
     useEffect(() => {
         initPlugin();
-    }, []);
+    }, [initPlugin]);
 
     const setDocumentView = (url: string) => {
         if (url && validateYouTubeURL(url)) {
@@ -128,13 +136,16 @@ export default function MainView() {
     const onReady = (event: YouTubeEvent) => {
         console.log('Ready!');
         console.log(event);
-        videoElement.current = event;
+        videoElement.current = event.target;
+
+        Object.assign(window, { videoElement: event.target });
+
         console.log(videoElement.current);
     };
 
     const onPlay = (event: YouTubeEvent) => {
-        if (!videoElement.current || !videoElement.current.target) videoElement.current = event;
-
+        isPlaying.current = true;
+        if (!videoElement.current) videoElement.current = event.target;
         plugin?.triggerEvent({
             action: 'play',
         });
@@ -142,7 +153,8 @@ export default function MainView() {
 
     const onPause = (event: YouTubeEvent) => {
         console.log(videoElement.current);
-        if (!videoElement.current || !videoElement.current.target) videoElement.current = event;
+        isPlaying.current = false;
+        if (!videoElement.current) videoElement.current = event.target;
 
         plugin?.triggerEvent({
             action: 'pause',
