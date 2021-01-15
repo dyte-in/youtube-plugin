@@ -1,3 +1,9 @@
+html, body {
+  width: 100vw;
+  height: 100vh;
+  font-family: 'Roboto', sans-serif;
+}
+
 .App {
   text-align: center;
 }
@@ -35,4 +41,90 @@
   to {
     transform: rotate(360deg);
   }
+}
+.shareIframe {
+  width: 100vw;
+  margin-top: -30px;
+}
+
+.top-nav {
+  height: 50px;
+}
+
+.mainViewContainer {
+  width: 100vw;
+  height: 100vh;
+}
+
+.form-control:focus {
+  box-shadow: none !important;
+}
+
+.btn.btn-outline-docs {
+  color: #495057;
+  border-color: #4285F4;
+}
+
+.btn.btn-outline-docs:hover {
+  background-color: #4285F4;
+  border-color: #4285F4;
+  color: white;
+}
+
+.form-control.input-docs:focus {
+  border-color: #4285F4;
+}
+
+.btn.btn-outline-sheets {
+  color: #495057;
+  border-color: #34A853
+}
+
+.btn.btn-outline-sheets:hover {
+  color: white;
+  border-color: #34A853;
+  background-color: #34A853;
+}
+
+.form-control.input-sheets:focus {
+  border-color: #34A853;
+}
+
+.btn.btn-outline-slides {
+  border-color: #F9BC05;
+  color: #495057;
+}
+
+.btn.btn-outline-slides:hover {
+  color: white;
+  border-color: #F9BC05;
+  background-color: #F9BC05;
+}
+
+.form-control.input-slides:focus {
+  border-color: #F9BC05;
+}
+
+.suite-icons img {
+  padding: 1rem;
+  width: 100px;
+}
+
+.prompt {
+  font-size: 20px;
+  font-weight: lighter;
+}
+
+.nav-icon {
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+}
+
+.nav-icon:hover {
+  background-color: rgba(73, 80, 87, 0.1);
+  border-radius: 20px;
 }
