@@ -51,46 +51,39 @@ export default function MainView() {
     const [plugin, setPlugin] = useState<DytePlugin>();
     const [currentElement, setCurrentElement] = useState<YouTubeEvent>({ target: null });
 
-    const initPlugin = useCallback(async () => {
+    const initPlugin = async () => {
         const dytePlugin = new DytePlugin();
         await dytePlugin.init();
         dytePlugin.connection.on(Events.pluginData, (payload) => {
             setDocumentView(payload.data.shareUrl);
         });
 
-        setPlugin(dytePlugin);
-    }, []);
-
-    useEffect(() => {
-        initPlugin();
-    }, [initPlugin]);
-
-    const eventListener = useCallback((ce: YouTubeEvent) => {
-        console.log('ran');
-        plugin?.connection.on(Events.pluginEvent, (payload: YouTubeEventData) => {
-            if (!ce.target) {
-                console.log('currentElement is not defined!');
+        dytePlugin.connection.on(Events.pluginEvent, (payload: YouTubeEventData) => {
+            if (!currentElement.target) {
+                console.log('currentElement.target is not defined!');
                 return;
             }
 
             switch (payload.data.action) {
             case 'play':
                 console.log('play!');
-                ce.target.playVideo();
+                currentElement.target.playVideo();
                 break;
             case 'pause':
                 console.log('pause!');
-                ce.target.pauseVideo();
+                currentElement.target.pauseVideo();
                 break;
             default:
                 console.log(payload.data);
             }
         });
-    }, [plugin]);
+
+        setPlugin(dytePlugin);
+    };
 
     useEffect(() => {
-        eventListener(currentElement);
-    }, [eventListener, currentElement]);
+        initPlugin();
+    }, []);
 
     const setDocumentView = (url: string) => {
         if (url && validateYouTubeURL(url)) {
@@ -140,7 +133,7 @@ export default function MainView() {
     };
 
     const onPlay = (event: YouTubeEvent) => {
-        if (!currentElement) setCurrentElement(event);
+        if (!currentElement || !currentElement.target) setCurrentElement(event);
 
         plugin?.triggerEvent({
             action: 'play',
@@ -149,7 +142,7 @@ export default function MainView() {
 
     const onPause = (event: YouTubeEvent) => {
         console.log(currentElement);
-        if (!currentElement) setCurrentElement(event);
+        if (!currentElement || !currentElement.target) setCurrentElement(event);
 
         plugin?.triggerEvent({
             action: 'pause',
