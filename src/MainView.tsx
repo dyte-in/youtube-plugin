@@ -13,8 +13,8 @@ import {
 
 import YouTube from 'react-youtube';
 
-import logo from './youtube_icon.png';
-import reloadIcon from './reload.png';
+import logo from './assets/youtube_icon.png';
+import reloadIcon from './assets/reload.png';
 
 declare global {
     interface Window { }
