@@ -15,7 +15,6 @@ import YouTube from 'react-youtube';
 
 import logo from './assets/youtube_icon.png';
 import reloadIcon from './assets/reload.png';
-import { time } from 'console';
 
 declare global {
     interface Window { }
@@ -65,17 +64,20 @@ export default function MainView() {
     const [plugin, setPlugin] = useState<DytePlugin>();
 
     const dataStore = useRef<YouTubeStoredData>({
-        shareUrl: share,
+        shareUrl: '',
         currentTime: 0,
         lastUpdated: +new Date(),
     });
 
     const isPlaying = useRef<boolean>(false);
-    const videoElement = useRef<any>({ target: null });
+    const videoElement = useRef<any>(null);
+
+    const timeDelta = () => (+new Date() - dataStore.current.lastUpdated) / 1000;
 
     const initPlugin = useCallback(async () => {
         const dytePlugin = new DytePlugin();
         await dytePlugin.init();
+
         dytePlugin.connection.on(Events.pluginData, (payload: { data: YouTubeStoredData }) => {
             setDocumentView(payload.data.shareUrl);
             dataStore.current = payload.data;
@@ -87,18 +89,17 @@ export default function MainView() {
                 return;
             }
 
-            const timeDelta = (+new Date() - dataStore.current.lastUpdated) / 1000;
-            console.log('timeDelta', timeDelta);
-
             switch (payload.data.action) {
             case 'play':
                 if (isPlaying.current) break;
+                isPlaying.current = true;
                 console.log('play!');
-                videoElement.current.seekTo(dataStore.current.currentTime + timeDelta);
+                videoElement.current.seekTo(dataStore.current.currentTime + timeDelta());
                 videoElement.current.playVideo();
                 break;
             case 'pause':
                 if (!isPlaying.current) break;
+                isPlaying.current = false;
                 console.log('pause!');
                 videoElement.current.pauseVideo();
                 break;
@@ -127,16 +128,25 @@ export default function MainView() {
 
     useEffect(() => {
         if (plugin) {
-            plugin.getData().then((data: { shareUrl: string }) => setDocumentView(data?.shareUrl));
+            plugin.getData().then((data: YouTubeStoredData) => {
+                if (data) {
+                    setDocumentView(data.shareUrl);
+                    dataStore.current = data;
+                }
+            });
         }
     }, [plugin]);
 
     const shareVideo = (url: string) => {
         const vid = validateYouTubeURL(url);
-        dataStore.current.shareUrl = url;
         if (vid) {
             setVideoId(vid);
-            plugin?.storeData(dataStore.current);
+            const data: YouTubeStoredData = {
+                shareUrl: url,
+                currentTime: 0,
+                lastUpdated: +new Date(),
+            };
+            plugin?.storeData(data);
         } else {
             alert('Not a valid YouTube URL!');
         }
@@ -156,25 +166,21 @@ export default function MainView() {
     };
 
     const onReady = (event: YouTubeEvent) => {
-        console.log('Ready!');
-        console.log(event);
         videoElement.current = event.target;
-
-        console.log(videoElement.current);
     };
 
-    const onPlay = (event: YouTubeEvent) => {
+    const onPlay = () => {
+        if (isPlaying.current) return;
         isPlaying.current = true;
-        if (!videoElement.current) videoElement.current = event.target;
+
         plugin?.triggerEvent({
             action: 'play',
         });
     };
 
-    const onPause = (event: YouTubeEvent) => {
-        console.log(videoElement.current);
+    const onPause = () => {
+        if (!isPlaying.current) return;
         isPlaying.current = false;
-        if (!videoElement.current) videoElement.current = event.target;
 
         plugin?.triggerEvent({
             action: 'pause',
@@ -182,24 +188,45 @@ export default function MainView() {
     };
 
     const onStateChange = (event: YouTubeEvent) => {
-        console.log(event);
+        if (!videoElement.current) videoElement.current = event.target;
+
         dataStore.current.currentTime = event.target.getCurrentTime();
         dataStore.current.lastUpdated = +new Date();
         plugin?.storeData(dataStore.current);
     };
 
     return (
-        <Container fluid className="d-flex flex-column mainViewContainer no-overflow">
+        <Container
+            fluid
+            className="d-flex flex-column mainViewContainer no-overflow"
+        >
             <Navbar className="top-nav">
-                <Navbar.Brand href="https://youtube.com" target="_blank">
+                <Navbar.Brand
+                    href="https://youtube.com"
+                    target="_blank"
+                >
                     <img src={logo} width="30px" alt="logo" />
                 </Navbar.Brand>
                 <Row className="no-gutters flex-grow-1">
                     <Col>
-                        <FormControl type="text" className="input-docs" placeholder="Enter YouTube URL" value={inputBar} onChange={(e) => setInputBar(e.target.value)} onKeyDown={handleKeyDown} size="sm" />
+                        <FormControl
+                            type="text"
+                            className="input-docs"
+                            placeholder="Enter YouTube URL"
+                            value={inputBar}
+                            onChange={(e) => setInputBar(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            size="sm"
+                        />
                     </Col>
-                    <Col md="auto" className="pl-2 pr-1 d-flex justify-content-center align-items-center">
-                        <NavItem className="nav-icon" onClick={reload}>
+                    <Col
+                        md="auto"
+                        className="pl-2 pr-1 d-flex justify-content-center align-items-center"
+                    >
+                        <NavItem
+                            className="nav-icon"
+                            onClick={reload}
+                        >
                             <img src={reloadIcon} width="26px" alt="refresh" />
                         </NavItem>
                     </Col>
@@ -223,8 +250,14 @@ export default function MainView() {
                 {
                     !share
                     && (
-                        <div className="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
-                            <div className="prompt mt-4">Enter a YouTube link in the URL bar above.</div>
+                        <div
+                            className="flex-grow-1 d-flex flex-column justify-content-center align-items-center"
+                        >
+                            <div
+                                className="prompt mt-4"
+                            >
+                                Enter a YouTube link in the URL bar above.
+                            </div>
                         </div>
                     )
                 }
