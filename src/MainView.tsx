@@ -11,7 +11,7 @@ import {
     NavItem,
 } from 'react-bootstrap';
 
-import YouTube from 'react-youtube';
+import YouTube, { Options } from 'react-youtube';
 
 import logo from './assets/youtube_icon.png';
 import reloadIcon from './assets/reload.png';
@@ -21,16 +21,6 @@ declare global {
 }
 
 const YOUTUBE_URL_REGEX = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-
-// const autoplay: 0 | 1 | undefined = 1;
-
-const videoOptions = {
-    height: '100%',
-    width: '100%',
-    // playerVars: {
-    //     autoplay,
-    // },
-};
 
 function validateYouTubeURL(share: string): string | null {
     const match = share.match(YOUTUBE_URL_REGEX);
@@ -55,6 +45,7 @@ interface YouTubeStoredData {
     shareUrl: string;
     currentTime: number;
     lastUpdated: number;
+    isPlaying: boolean;
 }
 
 export default function MainView() {
@@ -62,17 +53,26 @@ export default function MainView() {
     const [share, setShare] = useState<string>('');
     const [inputBar, setInputBar] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
+    const [videoOptions, setVideoOptions] = useState<Options>({
+        height: '100%',
+        width: '100%',
+        playerVars: {
+            autoplay: 0,
+        },
+    });
 
     const dataStore = useRef<YouTubeStoredData>({
         shareUrl: '',
         currentTime: 0,
         lastUpdated: +new Date(),
+        isPlaying: false,
     });
-
     const isPlaying = useRef<boolean>(false);
     const videoElement = useRef<any>(null);
 
-    const timeDelta = () => (+new Date() - dataStore.current.lastUpdated) / 1000;
+    const timeDelta = () => dataStore.current.currentTime + (
+        +new Date() - dataStore.current.lastUpdated
+    ) / 1000;
 
     const initPlugin = useCallback(async () => {
         const dytePlugin = new DytePlugin();
@@ -94,7 +94,7 @@ export default function MainView() {
                 if (isPlaying.current) break;
                 isPlaying.current = true;
                 console.log('play!');
-                videoElement.current.seekTo(dataStore.current.currentTime + timeDelta());
+                videoElement.current.seekTo(timeDelta());
                 videoElement.current.playVideo();
                 break;
             case 'pause':
@@ -132,12 +132,6 @@ export default function MainView() {
                 if (data) {
                     setDocumentView(data.shareUrl);
                     dataStore.current = data;
-
-                    if (dataStore.current && dataStore.current.currentTime > 0) {
-                        plugin.triggerEvent({
-                            action: 'pause',
-                        });
-                    }
                 }
             });
         }
@@ -151,6 +145,7 @@ export default function MainView() {
                 shareUrl: url,
                 currentTime: 0,
                 lastUpdated: +new Date(),
+                isPlaying: false,
             };
             plugin?.storeData(data);
         } else {
@@ -166,27 +161,48 @@ export default function MainView() {
 
     const reload = () => {
         console.log(dataStore.current);
+        console.log(videoElement.current);
         if (inputBar !== share) {
             shareVideo(inputBar);
         }
     };
 
-    const onReady = (event: YouTubeEvent) => {
-        videoElement.current = event.target;
+    const changeStoredState = (event: YouTubeEvent) => {
+        dataStore.current.isPlaying = isPlaying.current;
+        dataStore.current.currentTime = event.target.getCurrentTime();
+        dataStore.current.lastUpdated = +new Date();
+        plugin?.storeData(dataStore.current);
     };
 
-    const onPlay = () => {
+    const onReady = (event: YouTubeEvent) => {
+        videoElement.current = event.target;
+        videoElement.current.seekTo(timeDelta());
+
+        if (videoElement.current) {
+            if (dataStore.current.isPlaying) {
+                videoElement.current.playVideo();
+            } else {
+                videoElement.current.pauseVideo();
+            }
+        }
+    };
+
+    const onPlay = (event: YouTubeEvent) => {
         if (isPlaying.current) return;
         isPlaying.current = true;
+
+        changeStoredState(event);
 
         plugin?.triggerEvent({
             action: 'play',
         });
     };
 
-    const onPause = () => {
+    const onPause = (event: YouTubeEvent) => {
         if (!isPlaying.current) return;
         isPlaying.current = false;
+
+        changeStoredState(event);
 
         plugin?.triggerEvent({
             action: 'pause',
@@ -195,10 +211,6 @@ export default function MainView() {
 
     const onStateChange = (event: YouTubeEvent) => {
         if (!videoElement.current) videoElement.current = event.target;
-
-        dataStore.current.currentTime = event.target.getCurrentTime();
-        dataStore.current.lastUpdated = +new Date();
-        plugin?.storeData(dataStore.current);
     };
 
     return (
@@ -254,7 +266,7 @@ export default function MainView() {
                     )
                 }
                 {
-                    !share
+                    !videoId
                     && (
                         <div
                             className="flex-grow-1 d-flex flex-column justify-content-center align-items-center"
