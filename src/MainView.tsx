@@ -53,7 +53,7 @@ export default function MainView() {
     const [share, setShare] = useState<string>('');
     const [inputBar, setInputBar] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
-    const [videoOptions, setVideoOptions] = useState<Options>({
+    const [videoOptions] = useState<Options>({
         height: '100%',
         width: '100%',
         playerVars: {
@@ -85,7 +85,6 @@ export default function MainView() {
 
         dytePlugin.connection.on(Events.pluginEvent, (payload: YouTubeEventData) => {
             if (!videoElement.current) {
-                console.log('videoElement.current is not defined!');
                 return;
             }
 
@@ -93,19 +92,17 @@ export default function MainView() {
             case 'play':
                 if (isPlaying.current) break;
                 isPlaying.current = true;
-                console.log('play!');
                 videoElement.current.seekTo(timeDelta());
                 videoElement.current.playVideo();
                 break;
             case 'pause':
                 if (!isPlaying.current) break;
                 isPlaying.current = false;
-                console.log('pause!');
                 videoElement.current.seekTo(timeDelta());
                 videoElement.current.pauseVideo();
                 break;
             default:
-                console.log(payload.data);
+                break;
             }
         });
 
@@ -150,6 +147,7 @@ export default function MainView() {
             };
             plugin?.storeData(data);
         } else {
+            // eslint-disable-next-line no-alert
             alert('Not a valid YouTube URL!');
         }
     };
@@ -161,8 +159,6 @@ export default function MainView() {
     };
 
     const reload = () => {
-        console.log(dataStore.current);
-        console.log(videoElement.current);
         if (inputBar !== share) {
             shareVideo(inputBar);
         }
