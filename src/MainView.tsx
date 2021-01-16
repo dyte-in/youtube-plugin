@@ -15,6 +15,7 @@ import YouTube from 'react-youtube';
 
 import logo from './assets/youtube_icon.png';
 import reloadIcon from './assets/reload.png';
+import { time } from 'console';
 
 declare global {
     interface Window { }
@@ -51,19 +52,33 @@ interface YouTubeEventData {
     scope: string;
 }
 
+interface YouTubeStoredData {
+    shareUrl: string;
+    currentTime: number;
+    lastUpdated: number;
+}
+
 export default function MainView() {
     const [videoId, setVideoId] = useState<string>('');
     const [share, setShare] = useState<string>('');
     const [inputBar, setInputBar] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
+
+    const dataStore = useRef<YouTubeStoredData>({
+        shareUrl: share,
+        currentTime: 0,
+        lastUpdated: +new Date(),
+    });
+
     const isPlaying = useRef<boolean>(false);
     const videoElement = useRef<any>({ target: null });
 
     const initPlugin = useCallback(async () => {
         const dytePlugin = new DytePlugin();
         await dytePlugin.init();
-        dytePlugin.connection.on(Events.pluginData, (payload) => {
+        dytePlugin.connection.on(Events.pluginData, (payload: { data: YouTubeStoredData }) => {
             setDocumentView(payload.data.shareUrl);
+            dataStore.current = payload.data;
         });
 
         dytePlugin.connection.on(Events.pluginEvent, (payload: YouTubeEventData) => {
@@ -72,10 +87,14 @@ export default function MainView() {
                 return;
             }
 
+            const timeDelta = (+new Date() - dataStore.current.lastUpdated) / 1000;
+            console.log('timeDelta', timeDelta);
+
             switch (payload.data.action) {
             case 'play':
                 if (isPlaying.current) break;
                 console.log('play!');
+                videoElement.current.seekTo(dataStore.current.currentTime + timeDelta);
                 videoElement.current.playVideo();
                 break;
             case 'pause':
@@ -114,9 +133,10 @@ export default function MainView() {
 
     const shareVideo = (url: string) => {
         const vid = validateYouTubeURL(url);
+        dataStore.current.shareUrl = url;
         if (vid) {
             setVideoId(vid);
-            plugin?.storeData({ shareUrl: url });
+            plugin?.storeData(dataStore.current);
         } else {
             alert('Not a valid YouTube URL!');
         }
@@ -129,6 +149,7 @@ export default function MainView() {
     };
 
     const reload = () => {
+        console.log(dataStore.current);
         if (inputBar !== share) {
             shareVideo(inputBar);
         }
@@ -138,8 +159,6 @@ export default function MainView() {
         console.log('Ready!');
         console.log(event);
         videoElement.current = event.target;
-
-        Object.assign(window, { videoElement: event.target });
 
         console.log(videoElement.current);
     };
@@ -160,6 +179,13 @@ export default function MainView() {
         plugin?.triggerEvent({
             action: 'pause',
         });
+    };
+
+    const onStateChange = (event: YouTubeEvent) => {
+        console.log(event);
+        dataStore.current.currentTime = event.target.getCurrentTime();
+        dataStore.current.lastUpdated = +new Date();
+        plugin?.storeData(dataStore.current);
     };
 
     return (
@@ -190,14 +216,7 @@ export default function MainView() {
                             onReady={onReady}
                             onPlay={onPlay}
                             onPause={onPause}
-                            // onStateChange={(event) => {
-                            //     console.log('State change', event);
-                            //     const duration = event.target.getCurrentTime();
-                            //     console.log(duration);
-                            //     if (duration < 50) {
-                            //         event.target.seekTo(100);
-                            //     }
-                            // }}
+                            onStateChange={onStateChange}
                         />
                     )
                 }
