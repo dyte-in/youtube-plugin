@@ -101,6 +101,7 @@ export default function MainView() {
                 if (!isPlaying.current) break;
                 isPlaying.current = false;
                 console.log('pause!');
+                videoElement.current.seekTo(timeDelta());
                 videoElement.current.pauseVideo();
                 break;
             default:
