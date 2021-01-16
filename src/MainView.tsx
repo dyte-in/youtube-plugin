@@ -25,7 +25,7 @@ const YOUTUBE_URL_REGEX = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?
 // const autoplay: 0 | 1 | undefined = 1;
 
 const videoOptions = {
-    height: '99%',
+    height: '100%',
     width: '100%',
     // playerVars: {
     //     autoplay,
@@ -190,6 +190,14 @@ export default function MainView() {
                             onReady={onReady}
                             onPlay={onPlay}
                             onPause={onPause}
+                            // onStateChange={(event) => {
+                            //     console.log('State change', event);
+                            //     const duration = event.target.getCurrentTime();
+                            //     console.log(duration);
+                            //     if (duration < 50) {
+                            //         event.target.seekTo(100);
+                            //     }
+                            // }}
                         />
                     )
                 }
