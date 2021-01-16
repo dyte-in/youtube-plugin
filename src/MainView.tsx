@@ -132,6 +132,12 @@ export default function MainView() {
                 if (data) {
                     setDocumentView(data.shareUrl);
                     dataStore.current = data;
+
+                    if (dataStore.current && dataStore.current.currentTime > 0) {
+                        plugin.triggerEvent({
+                            action: 'pause',
+                        });
+                    }
                 }
             });
         }
