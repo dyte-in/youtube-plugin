@@ -247,7 +247,7 @@ export default function MainView() {
                     </Col>
                 </Row>
             </Navbar>
-            <Row className="flex-grow-1 mt-3 videoContainer">
+            <Row className="flex-grow-1 mt-1 videoContainer">
                 {
                     videoId
                     && (
