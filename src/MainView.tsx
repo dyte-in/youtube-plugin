@@ -58,7 +58,6 @@ export default function MainView() {
         width: '100%',
         playerVars: {
             autoplay: 0,
-            disablekb: 1,
         },
     });
 
