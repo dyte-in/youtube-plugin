@@ -57,7 +57,8 @@ export default function MainView() {
         height: '100%',
         width: '100%',
         playerVars: {
-            autoplay: 0,
+			autoplay: 0,
+			start: 0,
         },
     });
 
