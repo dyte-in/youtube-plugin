@@ -56,10 +56,10 @@ export default function MainView() {
     const [videoOptions] = useState<Options>({
         height: '100%',
         width: '100%',
-        playerVars: {
-			autoplay: 0,
-			start: 0,
-        },
+        // playerVars: {
+        //     autoplay: 0,
+        //     start: 0,
+        // },
     });
 
     const dataStore = useRef<YouTubeStoredData>({
