@@ -91,20 +91,20 @@ export default function MainView() {
             }
 
             switch (payload.data.action) {
-                case 'play':
-                    if (isPlaying.current) break;
-                    isPlaying.current = true;
-                    videoElement.current.seekTo(timeDelta());
-                    videoElement.current.playVideo();
-                    break;
-                case 'pause':
-                    if (!isPlaying.current) break;
-                    isPlaying.current = false;
-                    videoElement.current.seekTo(timeDelta());
-                    videoElement.current.pauseVideo();
-                    break;
-                default:
-                    break;
+            case 'play':
+                if (isPlaying.current) break;
+                isPlaying.current = true;
+                videoElement.current.seekTo(timeDelta());
+                videoElement.current.playVideo();
+                break;
+            case 'pause':
+                if (!isPlaying.current) break;
+                isPlaying.current = false;
+                videoElement.current.seekTo(timeDelta());
+                videoElement.current.pauseVideo();
+                break;
+            default:
+                break;
             }
         });
     }, [plugin]);
