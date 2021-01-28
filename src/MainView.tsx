@@ -1,5 +1,5 @@
 import React, {
-    useRef, useEffect, useState, useCallback,
+    useRef, useEffect, useState,
 } from 'react';
 import { DytePlugin, Events } from 'dyte-plugin-sdk';
 import {
@@ -21,6 +21,9 @@ declare global {
 }
 
 const YOUTUBE_URL_REGEX = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+const {
+    PLUGIN_ID = '',
+} = process.env;
 
 function validateYouTubeURL(share: string): string | null {
     const match = share.match(YOUTUBE_URL_REGEX);
@@ -52,7 +55,6 @@ export default function MainView() {
     const [videoId, setVideoId] = useState<string>('');
     const [share, setShare] = useState<string>('');
     const [inputBar, setInputBar] = useState<string>('');
-    const [plugin, setPlugin] = useState<DytePlugin>();
     const [videoOptions] = useState<Options>({
         height: '100%',
         width: '100%',
@@ -61,6 +63,8 @@ export default function MainView() {
         //     start: 0,
         // },
     });
+
+    const plugin = useRef<DytePlugin>(new DytePlugin(PLUGIN_ID)).current;
 
     const dataStore = useRef<YouTubeStoredData>({
         shareUrl: '',
@@ -75,44 +79,35 @@ export default function MainView() {
         +new Date() - dataStore.current.lastUpdated
     ) / 1000;
 
-    const initPlugin = useCallback(async () => {
-        const dytePlugin = new DytePlugin();
-        await dytePlugin.init();
-
-        dytePlugin.connection.on(Events.pluginData, (payload: { data: YouTubeStoredData }) => {
+    useEffect(() => {
+        plugin.on(Events.pluginData, (payload: { data: YouTubeStoredData }) => {
             setDocumentView(payload.data.shareUrl);
             dataStore.current = payload.data;
         });
 
-        dytePlugin.connection.on(Events.pluginEvent, (payload: YouTubeEventData) => {
+        plugin.on(Events.pluginEvent, (payload: YouTubeEventData) => {
             if (!videoElement.current) {
                 return;
             }
 
             switch (payload.data.action) {
-            case 'play':
-                if (isPlaying.current) break;
-                isPlaying.current = true;
-                videoElement.current.seekTo(timeDelta());
-                videoElement.current.playVideo();
-                break;
-            case 'pause':
-                if (!isPlaying.current) break;
-                isPlaying.current = false;
-                videoElement.current.seekTo(timeDelta());
-                videoElement.current.pauseVideo();
-                break;
-            default:
-                break;
+                case 'play':
+                    if (isPlaying.current) break;
+                    isPlaying.current = true;
+                    videoElement.current.seekTo(timeDelta());
+                    videoElement.current.playVideo();
+                    break;
+                case 'pause':
+                    if (!isPlaying.current) break;
+                    isPlaying.current = false;
+                    videoElement.current.seekTo(timeDelta());
+                    videoElement.current.pauseVideo();
+                    break;
+                default:
+                    break;
             }
         });
-
-        setPlugin(dytePlugin);
-    }, []);
-
-    useEffect(() => {
-        initPlugin();
-    }, [initPlugin]);
+    }, [plugin]);
 
     const setDocumentView = (url: string) => {
         if (url && validateYouTubeURL(url)) {
